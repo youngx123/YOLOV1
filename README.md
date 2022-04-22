@@ -31,9 +31,6 @@ target_xy[:, 3] = offy / float(grids) + 0.5 * offh
 iou_score = self.Batch_Iou(pred_xy, target_xy)
 ```
 
-
-
-
->
+>https://github.com/abeardear/pytorch-YOLO-v1
 >
 >
