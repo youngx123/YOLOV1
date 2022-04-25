@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 # @Author : xyoung
-# @Time : 17:18  2021-07-07
-import os
 
+import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from .darknet import darknet53, darknet19
-from .HEAD import V3Head, VHhead, YOLOXHead
+from .HEAD import V3Head, VHhead, YOLOXHead, Conv
 
 
 class YOLOV1(nn.Module):
     def __init__(self, class_num, v1head=False, v3Head=False):
         super(YOLOV1, self).__init__()
-        self.backbone = darknet53()
-        self.scale = 32
+        self.backbone = darknet53(pretrained=True)
         self.out_filters = self.backbone.layers_out_filters
+        self.conv = Conv(self.out_filters[-1]+self.out_filters[-2]+self.out_filters[-3], self.out_filters[-1], 1)
         if v1head:
             self.head = VHhead(self.out_filters[-1], class_num)
         elif v3Head:
@@ -25,8 +25,13 @@ class YOLOV1(nn.Module):
 
     def forward(self, x):
         # # [batch_size, {256,512, 1024}, fsize,fsize ], fsize =[13, 26, 52]
-        _, _, x5 = self.backbone(x)
-
+        x3, x4, x5 = self.backbone(x)
+        dowmx4 = F.interpolate(x4, scale_factor=0.5)
+        dowmx3 = F.interpolate(x3, scale_factor=0.25)
+        catx5 = torch.cat((x5, dowmx3, dowmx4), 1)
+        x5 = self.conv(catx5)
+        del x3, x4, dowmx4, dowmx3
+        torch.cuda.empty_cache()
         # pred
         out5 = self.head(x5)
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # @Author : youngx
-# @Time : 8:50  2022-04-14
+
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 from collections import OrderedDict
@@ -20,6 +20,17 @@ class Conv(nn.Module):
     def forward(self, x):
         return self.convs(x)
 
+class SPP(nn.Module):
+    def __init__(self, pool_sizes=[1, 5, 9, 13]):
+        super(SPP, self).__init__()
+        self.maxpools = nn.ModuleList(
+            [nn.MaxPool2d(pool_size, 1, pool_size // 2) for pool_size in pool_sizes]
+        )
+
+    def forward(self, x):
+        features = [maxpool(x) for maxpool in self.maxpools[::-1]]
+        features = torch.cat(features, dim=1)
+        return features
 
 # Copy from yolov5
 class Bottleneck2(nn.Module):
@@ -59,10 +70,14 @@ class VHhead(nn.Module):
         super(VHhead, self).__init__()
         self.classNum = classNum
         self.predNum = predNum
+        self.spp = SPP()
+        self.conv1x1 = Conv(in_fileter*4,in_fileter, k=1)
         self.conv = BottleneckCSP(in_fileter, in_fileter//2, n=3, shortcut=False)
         self.pred = nn.Conv2d(in_fileter//2, self.predNum * (1 + 4) + self.classNum, kernel_size=1)
 
     def forward(self, x):
+        x = self.spp(x)
+        x = self.conv1x1(x)
         x = self.conv(x)
         x = self.pred(x)
         x = torch.sigmoid(x)
@@ -72,7 +87,6 @@ class VHhead(nn.Module):
 
 #                       #
 #  yolox detection head #
-#                       #
 class BaseConv(nn.Module):
     def __init__(self, in_channels, out_channels, ksize, stride, groups=1, bias=False, act="silu"):
         super().__init__()

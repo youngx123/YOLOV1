@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # @Author : xyoung
-# @Time : 16:27  2022-01-20
+
 import gc
 
 import numpy as np
@@ -8,10 +8,8 @@ from torch.utils.data import DataLoader, Dataset
 import cv2
 import matplotlib.pyplot as plt
 import os
-import csv
 import imageio
 import torch
-import random
 from .augmentations import SSDAugmentation
 from .data_transforms import Compose
 from torchvision import transforms
@@ -26,9 +24,25 @@ VOC_CLASSES = (  # always index 0
 class_to_ind = dict(zip(VOC_CLASSES, range(len(VOC_CLASSES))))
 
 
+def Show_Bbox(image, box, size=1, center_format=False, ):
+    if center_format:
+        for b in box:
+            pts1 = (int((b[0] - b[2]) * size), int((b[1] - b[3]) * size))
+            pts2 = (int((b[0] + b[2]) * size), int((b[1] + b[3]) * size))
+            cv2.rectangle(image, pts1, pts2, color=(255, 0, 0))
+    else:
+        for b in box:
+            pts1 = (int(b[0] * size), int(b[1] * size))
+            pts2 = (int(b[2] * size), int(b[3] * size))
+            cv2.rectangle(image, pts1, pts2, color=(255, 0, 0))
+
+    plt.imshow(image)
+    plt.show()
+
+
 class yoloDataset(Dataset):
-    def __init__(self, txtname, imageSie=416, numBboxes=2,
-                 classNum=None, train=True, scale=32, MaxObj=50):
+    def __init__(self, txtname, imageSie=416, numBboxes=2, classNum=None,
+                 train=True, scale=32, MaxObj=50):
         self.featureSize = imageSie // scale
         self.numBboxes = numBboxes
         self.classNum = classNum
@@ -59,18 +73,6 @@ class yoloDataset(Dataset):
 
     def __len__(self):
         return len(self.ImgList)
-
-    def drawBBox(self, data, imgInfo):
-        origin_H, origin_W = data.shape[:2]
-        # img = cv2.resize(data, (self.IMAGESIZE, self.IMAGESIZE))
-        for i in range(len(imgInfo)):
-            item = imgInfo[i]
-
-            cv2.rectangle(data, (int(item[0]), int(item[1])),
-                          (int(item[2]), int(item[3])),
-                          (255, 0, 0), 2)
-        plt.imshow(data)
-        plt.show()
 
     def encoder(self, bboxInfo, sizeW, sizeH):
         '''
@@ -154,13 +156,14 @@ class yoloDataset(Dataset):
 
         if self.train:
             img, box, label = self.Aug(img, gt[..., :4], gt[..., -1])
+            # Show_Bbox(img, box, self.IMAGESIZE)
             img = img.transpose(2, 0, 1)
             gt = np.concatenate((box, label.reshape(-1, 1)), 1)
 
             # Show_Bbox(img, gt, self.IMAGESIZE)
             gt[..., [0, 2]] = gt[..., [0, 2]]  # 0~1  # * self.IMAGESIZE
             gt[..., [1, 3]] = gt[..., [1, 3]]  # 0~1  # * self.IMAGESIZE
-            # # gt encod
+            # # gt encode
             # gt = self.encoder2(gt)
 
             num = 5
@@ -174,27 +177,10 @@ class yoloDataset(Dataset):
             return torch.from_numpy(img), imgPath
 
 
-def Show_Bbox(image, box, size=1, center_format=False, ):
-    if center_format:
-        for b in box:
-            pts1 = (int((b[0] - b[2]) * size), int((b[1] - b[3]) * size))
-            pts2 = (int((b[0] + b[2]) * size), int((b[1] + b[3]) * size))
-            cv2.rectangle(image, pts1, pts2, color=(255, 0, 0))
-    else:
-        for b in box:
-            pts1 = (int(b[0] * size), int(b[1] * size))
-            pts2 = (int(b[2] * size), int(b[3] * size))
-            cv2.rectangle(image, pts1, pts2, color=(255, 0, 0))
-
-    plt.imshow(image)
-    plt.show()
-
-
 if __name__ == '__main__':
     dirPath = "voc2007.txt"
     txtName = r"D:\MyNAS\SynologyDrive\Object_Detection\v1\yolov1\2007train.txt"
     dataset = yoloDataset(txtName, classNum=20, train=True)
-    from tqdm import tqdm
 
     dataloader = DataLoader(dataset, batch_size=2)
     for e in range(50):

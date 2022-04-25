@@ -1,11 +1,11 @@
 学习yolov1标签分配的思想以及按照自己理解重写损失函数
 
 
-![](https://github.com/youngx123/YOLOV1/blob/master/test/outResult/000019_result.jpg?raw=true)
+![](https://github.com/youngx123/YOLOV1/blob/master/test/outResult/person_result.jpg?raw=true)
 
-![](https://github.com/youngx123/YOLOV1/blob/master/test/outResult/000017_result.jpg?raw=true)
+![](https://github.com/youngx123/YOLOV1/blob/master/test/outResult/000012_result.jpg?raw=true)
 
-![](https://github.com/youngx123/YOLOV1/blob/master/test/outResult/000017_result.jpg?raw=true)
+![](https://github.com/youngx123/YOLOV1/blob/master/test/outResult/dog_result.jpg?raw=true)
 
 ```python
 w, h 是相对于训练图像的大小，而cx,cy是相对于特征图的大小，因此在计算iou 时，应将cx,cy也转

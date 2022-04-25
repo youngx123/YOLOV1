@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # @Author : xyoung
-# @Time : 16:51  2021-07-07
-import os
 
+import gc
+import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 from collections import OrderedDict
 import torch
@@ -47,7 +47,7 @@ class ConvBNLeakyReLU(nn.Module):
     def __init__(self, c_in, c_out):
         super(ConvBNLeakyReLU, self).__init__()
         self.conv1 = nn.Conv2d(c_in, c_out[0], kernel_size=1, stride=1, padding=0, bias=False)
-        self.b1 = nn.BatchNorm2d(c_out[0])
+        self.bn1 = nn.BatchNorm2d(c_out[0])
         self.relu1 = nn.LeakyReLU(0.1)
 
         self.conv2 = nn.Conv2d(c_out[0], c_out[1], kernel_size=3, stride=1, padding=1, bias=False)
@@ -58,11 +58,10 @@ class ConvBNLeakyReLU(nn.Module):
         residual = x
 
         out = self.conv1(x)
-        out = self.b1(out)
+        out = self.bn1(out)
         out = self.relu1(out)
 
         out = self.conv2(out)
-
         out = self.bn2(out)
         out = self.relu2(out)
 
@@ -114,36 +113,45 @@ class DarkNet(nn.Module):
 def darknet53(pretrained=None):
     model = DarkNet([1, 2, 8, 8, 4])
     if pretrained:
+        pretrained = "./weights/darknet53_backbone_weights.pth"
         pretrain_weight = torch.load(pretrained)
         key = pretrain_weight.keys()
-        param = model.state_dict()
-        for k in param:
-            if k in key and param[k].shape == pretrain_weight[k].shape:
-                param[k] = pretrain_weight[k]
+        modelDict = model.state_dict()
+        for k in modelDict.keys():
+            if k in key and modelDict[k].shape == pretrain_weight[k].shape:
+                modelDict[k] = pretrain_weight[k]
             else:
                 print("skip layer : ", k)
-        model.load_state_dict(param)
-        print("loade baockbone pretrained model")
+        model.load_state_dict(modelDict)
+        del pretrain_weight, modelDict
+        gc.collect()
+        torch.cuda.empty_cache()
+        print("loade darknet53 pretrained model")
     return model
 
 
 def darknet19(pretrained=None):
     model = DarkNet([1, 3, 3, 5, 5])
     if pretrained:
+        pretrained = "./weights/darknet19_backbone_weights.pth"
         pretrain_weight = torch.load(pretrained)
         key = pretrain_weight.keys()
-        param = model.state_dict()
-        for k in param:
-            if k in key and len(param[k]) == len(pretrain_weight[k]):
-                param[k] = pretrain_weight[k]
-
-        model.load_state_dict(param)
-        print("loade baockbone pretrained model")
+        modelDict = model.state_dict()
+        for k in modelDict.keys():
+            if k in key and modelDict[k].shape == pretrain_weight[k].shape:
+                modelDict[k] = pretrain_weight[k]
+            else:
+                print("skip layer : ", k)
+        model.load_state_dict(modelDict)
+        del pretrain_weight, modelDict
+        gc.collect()
+        torch.cuda.empty_cache()
+        print("loade darknet19 pretrained model")
     return model
 
 
 if __name__ == '__main__':
-    model = darknet19()
+    model = darknet53(True)
     model_dict = model.state_dict()
 
     print('Finished!')

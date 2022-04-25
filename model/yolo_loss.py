@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # @Author : xyoung
-# @Time : 14:59  2021-07-12
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,10 +11,6 @@ class yoloLoss(nn.Module):
         super(yoloLoss, self).__init__()
         self.lambda_coord = l_coord
         self.lambda_noobj = l_noobj
-        self.conf_loss = nn.BCELoss()
-        self.cls_loss = nn.BCELoss()
-        self.MSE_loss = nn.MSELoss()
-        self.twh_loss = nn.MSELoss()
 
     def forward(self, pred, target):
         """
@@ -30,7 +26,7 @@ class yoloLoss(nn.Module):
         del pred
         torch.cuda.empty_cache()
 
-        # # get target
+        # # get target [conf, x,y,w,h] , [one-hot class encode]
         target_confxywh, target_ClC = self.build_target(target, pred_cxywh, gridSize)
 
         # # loss cal
@@ -74,7 +70,7 @@ class yoloLoss(nn.Module):
         """
         Args:
         target: x1,x2,y1,y2 label , (x1,y1,x2,y2) 0~1
-        predcxywh:
+        predcxywh:[BS, gridx, gridx, 30] [conf, x,y,w,h]
         grids: feature map size
         Returns:
         """
@@ -91,7 +87,7 @@ class yoloLoss(nn.Module):
                     continue
                 gtItem = gtItem.reshape(-1, 5)
 
-                wywh = gtItem[0, :4]
+                wywh = gtItem[0, :4].clone()
                 x1, y1 = wywh[0:2]
                 x2, y2 = wywh[2:4]
 
