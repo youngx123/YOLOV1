@@ -30,7 +30,7 @@ pred_xy[:, 0:2] = pred_box[:, :2] / float(grids) - 0.5 * pred_box[:, 2:4]
 pred_xy[:, 2:4] = pred_box[:, :2] / float(grids) + 0.5 * pred_box[:, 2:4]
 
 target_xy = torch.zeros(1, 4)
-target_xy[:, 0] = offx / float(grids) - 0.5 * offw
+target_xy[:, 0] = offx / float(grids) - 0.5 * offw  # # 特征图上坐标偏移转为训练图像上的坐标偏移
 target_xy[:, 1] = offy / float(grids) - 0.5 * offh
 target_xy[:, 2] = offx / float(grids) + 0.5 * offw
 target_xy[:, 3] = offy / float(grids) + 0.5 * offh
