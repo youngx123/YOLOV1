@@ -30,7 +30,7 @@ class YOLOV1(nn.Module):
         dowmx3 = F.interpolate(x3, scale_factor=0.25)
         catx5 = torch.cat((x5, dowmx3, dowmx4), 1)
         x5 = self.conv(catx5)
-        del x3, x4, dowmx4, dowmx3
+        del x3, x4, dowmx4, dowmx3, catx5
         torch.cuda.empty_cache()
         # pred
         out5 = self.head(x5)

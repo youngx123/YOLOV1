@@ -39,7 +39,7 @@ class yoloLoss(nn.Module):
         noobjPred = pred_cxywh[noobjMask]
         noobjTarget = target_confxywh[noobjMask]
 
-        noobj_loss = F.mse_loss(noobjPred[..., 0], noobjTarget[..., 0])
+        noobj_loss = F.mse_loss(noobjPred[..., 0], noobjTarget[..., 0], size_average=False)
 
         # # obj pred and target
         objclcPred = pred_cls[objMask]
@@ -57,14 +57,14 @@ class yoloLoss(nn.Module):
         objPred = objPred[selectMask]
 
         # obj loss
-        objconf_loss = F.mse_loss(objPred[..., 0], objTarget[..., 0])
-        loss_xy = F.mse_loss(objPred[..., 1:3], objTarget[..., 1:3])
-        loss_wh = F.mse_loss(torch.sqrt(objPred[..., 3:5]), torch.sqrt(objTarget[..., 3:5]))
+        objconf_loss = F.mse_loss(objPred[..., 0], objTarget[..., 0], size_average=False)
+        loss_xy = F.mse_loss(objPred[..., 1:3], objTarget[..., 1:3], size_average=False)
+        loss_wh = F.mse_loss(torch.sqrt(objPred[..., 3:5]), torch.sqrt(objTarget[..., 3:5]), size_average=False)
 
-        loss_clc = F.mse_loss(objclcPred, objclcTarget)
+        loss_clc = F.mse_loss(objclcPred, objclcTarget, size_average=False)
 
         loss = self.lambda_coord * (loss_xy + loss_wh) + objconf_loss + self.lambda_noobj * noobj_loss + loss_clc
-        return loss
+        return loss / BS
 
     def build_target(self, target, predcxywh, grids):
         """

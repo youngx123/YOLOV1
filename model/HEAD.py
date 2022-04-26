@@ -20,6 +20,7 @@ class Conv(nn.Module):
     def forward(self, x):
         return self.convs(x)
 
+
 class SPP(nn.Module):
     def __init__(self, pool_sizes=[1, 5, 9, 13]):
         super(SPP, self).__init__()
@@ -71,7 +72,7 @@ class VHhead(nn.Module):
         self.classNum = classNum
         self.predNum = predNum
         self.spp = SPP()
-        self.conv1x1 = Conv(in_fileter*4,in_fileter, k=1)
+        self.conv1x1 = Conv(in_fileter*4, in_fileter, k=1)
         self.conv = BottleneckCSP(in_fileter, in_fileter//2, n=3, shortcut=False)
         self.pred = nn.Conv2d(in_fileter//2, self.predNum * (1 + 4) + self.classNum, kernel_size=1)
 

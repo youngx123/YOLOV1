@@ -31,7 +31,7 @@ logging.basicConfig(level=logging.DEBUG, format="[%(asctime)s %(message)s")
 def parse_args():
     parser = argparse.ArgumentParser(description='YOLO Detection')
     parser.add_argument('--class_num', default=20, type=int, help='dataset class number')
-    parser.add_argument('--EPOCH', default=500, type=int, help='train epoch')
+    parser.add_argument('--EPOCH', default=120, type=int, help='train epoch')
     parser.add_argument('--train_size', default=416, type=int, help='train epoch')
 
     parser.add_argument('--train_text', default="./2007train.txt", type=str, help='train list text')
@@ -49,11 +49,11 @@ def parse_args():
 
     parser.add_argument('--cuda', action='store_true', default=True, help='use cuda.')
 
-    parser.add_argument('--eval_epoch', type=int, default=2, help='interval between evaluations')
+    parser.add_argument('--eval_epoch', type=int, default=4, help='interval between evaluations')
     parser.add_argument('--save_folder', default='weights/', type=str, help='pt save dir')
     parser.add_argument('--show_loss_step', default=1, type=int, help='show training info')
 
-    parser.add_argument('--pretrained_model', default="./weights/best.pt", type=str, help='load pretrained model')
+    parser.add_argument('--pretrained_model', default="./weights/model.pt", type=str, help='load pretrained model')
 
     return parser.parse_args()
 
@@ -137,6 +137,9 @@ def train_model(config, net, loss_fn, optimizer, trainloader, valloader):
                 logging.warning("validate loss dont improve best :  %.4f , val loss : %.4f " % (best_val, val_loss))
         net.train()
 
+    checkpointModel = save_checkpoint(net.state_dict(), optimizer, config, "last")
+    logging.info("Model checkpoint saved to :%s" % checkpointModel)
+
 
 def eval_model(model, Loss_Func, valloader):
     model.eval()
@@ -164,7 +167,7 @@ def main(config):
 
     # class number
     classNum = config.class_num
-    net = YOLOV1(v1head=True, class_num=20)
+    net = YOLOV1(v1head=True, class_num=classNum)
     optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
 
     if config.pretrained_model:
@@ -177,9 +180,13 @@ def main(config):
         net.load_state_dict(netDict)
         logging.info("load pretrained model")
 
-        # optDict = net_state_dict["optimizer"]
+        optDict = net_state_dict["optimizer"]
         # for k in optDict.keys()
-        # optimizer.load_state_dict(net_state_dict["optimizer"].cuda())
+        optimizer.load_state_dict(optDict)
+        for state in optimizer.state.values():
+            for k, v in state.items():
+                if torch.is_tensor(v):
+                    state[k] = v.cuda()
         del net_state_dict, trainedDict, netDict
         gc.collect()
         torch.cuda.empty_cache()

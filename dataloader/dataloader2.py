@@ -55,7 +55,7 @@ class yoloDataset(Dataset):
             self.classNum = len(VOC_CLASSES)
 
         if self.train:
-            self.Aug = SSDAugmentation(self.IMAGESIZE, mean=(0, 0, 0), std=(1, 1, 1))
+            self.SSDAug = SSDAugmentation(self.IMAGESIZE, mean=(0, 0, 0), std=(1, 1, 1))
 
     def readText(self, path):
         self.ImgList = list()
@@ -144,23 +144,22 @@ class yoloDataset(Dataset):
         imgPath = self.ImgList[item]
         labelPath = self.LabelList[item]
 
-        if os.path.exists(imgPath) and os.path.exists(labelPath):
-            img = imageio.imread(imgPath)
-            img = np.array(img, dtype=np.float)
-            origin_H, origin_W = img.shape[:2]
-            gt = np.loadtxt(labelPath, delimiter=",").reshape(-1, 5)
-            gt[..., [0, 2]] = gt[..., [0, 2]] / origin_W
-            gt[..., [1, 3]] = gt[..., [1, 3]] / origin_H
-        else:
-            raise "path don't exist, check again"
-
         if self.train:
-            img, box, label = self.Aug(img, gt[..., :4], gt[..., -1])
+            if os.path.exists(imgPath) and os.path.exists(labelPath):
+                img = imageio.imread(imgPath)
+                img = np.array(img, dtype=np.float)
+                origin_H, origin_W = img.shape[:2]
+                gt = np.loadtxt(labelPath, delimiter=",").reshape(-1, 5)
+                gt[..., [0, 2]] = gt[..., [0, 2]] / origin_W
+                gt[..., [1, 3]] = gt[..., [1, 3]] / origin_H
+            else:
+                raise "path don't exist, check again"
+
+            img, box, label = self.SSDAug(img, gt[..., :4], gt[..., -1])
             # Show_Bbox(img, box, self.IMAGESIZE)
             img = img.transpose(2, 0, 1)
             gt = np.concatenate((box, label.reshape(-1, 1)), 1)
 
-            # Show_Bbox(img, gt, self.IMAGESIZE)
             gt[..., [0, 2]] = gt[..., [0, 2]]  # 0~1  # * self.IMAGESIZE
             gt[..., [1, 3]] = gt[..., [1, 3]]  # 0~1  # * self.IMAGESIZE
             # # gt encode
@@ -171,6 +170,8 @@ class yoloDataset(Dataset):
             filledGt[range(len(gt))[:self.MaxObj]] = gt[:self.MaxObj]
             return torch.from_numpy(img), torch.from_numpy(filledGt)
         else:
+            img = imageio.imread(imgPath)
+            img = np.array(img, dtype=np.float)
             img = img / 255.0
             img = cv2.resize(img, (self.IMAGESIZE, self.IMAGESIZE))
             img = img.transpose(2, 0, 1)
